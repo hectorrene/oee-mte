@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title%} Defectos {% endblock %}
+
+{% block content %}
+
+<h1 class="page-title"> Registrar defectos </h1>
+<p class="page-subtitle"> Registre los detalles de los defectos ocurridos </p>
+
+<div class="card">
+    <div class="card-header">
+        <h3> Defectos </h3>
+        <p> Complete la información de los defectos </p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label"> Hora del defecto <span class="obligatorio"> * </span></label>
+                <input type="time" class="form-input" name="start_time" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label"> Cantidad de defectos <span class="obligatorio"> * </span> </label>
+                <input type="number" class="form-input" name="quantity" required style="height: 46.48px;">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"> Tipo de defecto <span class="obligatorio"> * </span></label>
+            <select class="form-select" name="type" required>
+                <option value="" disabled selected>Seleccione un tipo</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Causa del defecto</label>
+            <select class="form-select" name="cause" required>
+                <option value="" disabled selected>Seleccione una causa</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"> Comentarios adicionales </label>
+            <textarea class="form-input" name="comments" rows="4" 
+                      placeholder="Ingrese cualquier comentario adicional sobre el tiempo muerto..."
+                      style="resize: vertical; min-height: 100px;"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-left: auto;">
+            Guardar Registro
+        </button>
+</div>
+
+{% endblock %}

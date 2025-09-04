@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %} Máquinas {% endblock %}
+
+{% block content %}
+
+<h1 class="page-title">Máquinas</h1>
+<p class="page-subtitle">Lista de máquinas registradas en el sistema.</p>
+
+{% for machine in machines %}
+<div class="card card-clickable" onclick="location.href='{% url 'productionPlan' machine.id %}'">
+    <div class="card-header">
+        <div class="flex justify-between items-center">
+            <div>
+                <h3 class="card-title">{{ machine.name }}</h3>
+            </div>
+            <div class="stat-icon blue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    
+    <div class="flex justify-between items-center">
+        <div class="flex gap-2">
+            <span class="pill pill-secondary">Activa</span>
+            {% if machine.is_active %}
+                <span class="pill pill-success">En línea</span>
+            {% else %}
+                <span class="pill pill-warning">Fuera de línea</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+    </div>
+    <h3 class="section-title">No hay máquinas registradas</h3>
+</div>
+{% endfor %}
+
+{% endblock %}

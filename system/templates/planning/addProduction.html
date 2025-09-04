@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+
+{% block title %}Agregar Producción{% endblock %}
+
+{% block content %}
+<div class="page-title">Producción planeada</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Agregar producción</div>
+        <div class="card-description">Puede agregar la producción manualmente o subir el archivo heijunka con el formato indicado</div>
+    </div>
+    
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+        <div class="tabs-nav">
+            <button class="tab-button active" data-tab="manual">Manual</button>
+            <button class="tab-button" data-tab="diaria">Diaria</button>
+        </div>
+        
+        <!-- Tab Contents -->
+        <div class="tabs-content">
+            <!-- Manual Tab -->
+            <div class="tab-content active" id="manual-tab">
+                <form method="POST">
+                    {% csrf_token %}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                                {{ form.workorder }} 
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_cell"> Celda <span class="obligatorio"> * </span></label>
+                                {{ form.cell }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                                {{ form.date }}
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin-top:1rem;">
+                            <div class="card-header">
+                                <div class="card-title">Detalles de Producción</div>
+                            </div>
+                            <div class="card-body" id="formset-container">
+                                {{ formset.management_form }}
+                                {% for f in formset %}
+                                    <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
+                                        <div class="form-group">
+                                            <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                            {{ f.model_routing }}
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                            {{ f.quantity }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <button type="button" id="add-form" class="btn btn-secondary">+ Añadir otro modelo</button>
+                        </div>
+                        
+
+                        <button type="submit" class="btn btn-primary" >
+                            Guardar Registro
+                        </button>
+            </div>
+            
+            <!-- Diaria Tab -->
+            <div class="tab-content" id="diaria-tab">
+                <div class="form-group">
+                    <label class="form-label" for="daily-file">Archivo Heijunka Diario</label>
+                    <input type="file" id="daily-file" name="daily_file" class="form-input" accept=".xlsx,.xls">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+            
+            // Remove active class from all buttons and contents
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            button.classList.add('active');
+            document.getElementById(tabId + '-tab').classList.add('active');
+        });
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const addButton = document.getElementById("add-form");
+    const formsetContainer = document.getElementById("formset-container");
+    const totalForms = document.getElementById("id_details-TOTAL_FORMS"); 
+    // OJO: el "details" depende del `related_name` o del prefijo del formset
+    // Si Django genera otro id (ej. id_productiondetail_set-TOTAL_FORMS), hay que ajustarlo
+
+    addButton.addEventListener("click", function () {
+        const formCount = parseInt(totalForms.value);
+        const newForm = formsetContainer.querySelector(".formset-form").cloneNode(true);
+
+        // Reemplazar índices en los atributos name y id
+        newForm.innerHTML = newForm.innerHTML.replaceAll(
+            new RegExp(`-${formCount - 1}-`, "g"),
+            `-${formCount}-`
+        );
+
+        formsetContainer.appendChild(newForm);
+        totalForms.value = formCount + 1;
+    });
+});
+</script>
+
+<style>
+/* Tabs Styles */
+.tabs-container {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
+    min-height: 500px;
+}
+
+.tabs-nav {
+    display: flex;
+    border-bottom: 1px solid #4a5568;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    color: #a0aec0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    flex: 1;
+    text-align: center;
+}
+
+.tab-button:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab-button.active {
+    color: #ffffff;
+    border-bottom-color: #ffffff;
+}
+
+.tabs-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tab-content {
+    display: none;
+    flex: 1;
+    padding: 1.5rem 0;
+}
+
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive tabs */
+@media (max-width: 768px) {
+    .tabs-nav {
+        flex-direction: column;
+    }
+    
+    .tab-button {
+        text-align: left;
+        border-bottom: 1px solid #4a5568;
+        border-right: none;
+    }
+    
+    .tab-button.active {
+        border-bottom-color: #4a5568;
+        border-left: 2px solid #ffffff;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+}
+
+</style>
+{% endblock %}

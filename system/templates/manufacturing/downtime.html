@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %} Tiempo muerto {% endblock %}
+
+{% block content %}
+
+<h1 class="page-title">Tiempo muerto máquina {{cell.name}}</h1>
+<p class="page-subtitle">Inicie el timer o registre el tiempo muerto</p>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Registro de Tiempo Muerto</h3>
+        <p class="card-description">Complete la información del tiempo muerto de la máquina</p>
+    </div>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Inicio y Fin del tiempo muerto en la misma fila -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label">Inicio del tiempo muerto</label>
+                <input type="time" class="form-input" name="start_time" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Fin del tiempo muerto</label>
+                <input type="time" class="form-input" name="end_time" required>
+            </div>
+        </div>
+
+        <!-- Duración (solo lectura) -->
+        <div class="form-group">
+            <label class="form-label">Duración del tiempo muerto</label>
+            <input type="text" class="form-input" id="duration" name="duration" readonly 
+                   placeholder="Se calculará automáticamente" 
+                   style="background-color: #374151; cursor: not-allowed;">
+        </div>
+
+        <!-- Causa del tiempo muerto -->
+        <div class="form-group">
+            <label class="form-label">Causa del tiempo muerto</label>
+            <select class="form-select" name="cause" required>
+                <option value="" disabled selected>Seleccione una causa</option>
+            </select>
+        </div>
+
+        <!-- Comentarios con textarea -->
+        <div class="form-group">
+            <label class="form-label">Comentarios adicionales </label>
+            <textarea class="form-input" name="comments" rows="4" 
+                      placeholder="Ingrese cualquier comentario adicional sobre el tiempo muerto..."
+                      style="resize: vertical; min-height: 100px;"></textarea>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex justify-between mt-6">
+            <button type="button" class="btn btn-outline" onclick="window.history.back()">
+                Cancelar
+            </button>
+            <div class="flex" style="gap: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="startTimer()">
+                    Iniciar Timer
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Guardar Registro
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let timerRunning = false;
+    let startTime = null;
+    let timerInterval = null;
+
+    // Función para iniciar el timer
+    function startTimer() {
+        const startInput = document.querySelector('input[name="start_time"]');
+        const endInput = document.querySelector('input[name="end_time"]');
+        const button = event.target;
+
+        if (!timerRunning) {
+            // Iniciar timer
+            startTime = new Date();
+            const currentTime = startTime.toTimeString().slice(0, 5);
+            startInput.value = currentTime;
+            
+            button.textContent = 'Detener Timer';
+            button.classList.remove('btn-secondary');
+            button.classList.add('btn-warning');
+            timerRunning = true;
+
+            // Actualizar duración cada segundo
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const diff = now - startTime;
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                document.getElementById('duration').value = `${hours}h ${minutes}m ${seconds}s`;
+            }, 1000);
+        } else {
+            // Detener timer
+            const endTime = new Date();
+            const currentTime = endTime.toTimeString().slice(0, 5);
+            endInput.value = currentTime;
+            
+            button.textContent = 'Iniciar Timer';
+            button.classList.remove('btn-warning');
+            button.classList.add('btn-secondary');
+            timerRunning = false;
+
+            clearInterval(timerInterval);
+            calculateDuration();
+        }
+    }
+
+    // Event listeners para calcular duración automáticamente
+    document.addEventListener('DOMContentLoaded', function() {
+        const startInput = document.querySelector('input[name="start_time"]');
+        const endInput = document.querySelector('input[name="end_time"]');
+
+        startInput.addEventListener('change', calculateDuration);
+        endInput.addEventListener('change', calculateDuration);
+    });
+</script>
+{% endblock %}

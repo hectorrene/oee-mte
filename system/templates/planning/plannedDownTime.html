@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Calendario - Sistema OEE{% endblock %}
+
+{% block content %}
+    <div class="page-title">Calendario de Producción</div>
+    <div class="page-subtitle"> {{cells.name}} </div>
+
+    <!-- Layout Principal: 1/3 y 2/3 -->
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; height: calc(100vh - 200px);">
+        
+        <!-- Columna Izquierda (1/3): Calendario y Downtimes -->
+        <div style="display: flex; flex-direction: column;">
+            
+            <!-- Calendario -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Calendario Mensual</h3>
+                    <p class="card-description"> {{month}} </p>
+                </div>
+                
+                <div class="calendar-container">
+                    <table class="calendar-table">
+                        <thead>
+                            <tr>
+                                {% for day in weekdays %}
+                                    <th class="calendar-header">{{ day }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week in month_days %}
+                                <tr>
+                                    {% for day in week %}
+                                        {% if day == 0 %}
+                                            <td class="calendar-day empty"></td>
+                                        {% elif day == today %}
+                                            <td class="calendar-day today">{{ day }}</td>
+                                        {% else %}
+                                            <td class="calendar-day">{{ day }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tiempos Muertos -->
+            <div class="card" style="flex: 1; overflow-y: auto;">
+                <div class="card-header">
+                    <h3 class="card-title">Tiempos Muertos Programados</h3>
+                    <p class="card-description">Mantenimientos y paradas planificadas</p>
+                </div>
+                
+                <div class="downtimes-list">
+                    {% for downtime in downtimes %}
+                        <div class="downtime-item">
+                            <div class="downtime-header">
+                                <h4 class="downtime-title">{{ downtime.planned_downtime.name }}</h4>
+                                <span class="pill pill-warning">Programado</span>
+                            </div>
+                            <div class="downtime-time">
+                                <svg style="width: 1rem; height: 1rem; margin-right: 0.5rem; fill: #a0aec0;" viewBox="0 0 24 24">
+                                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                                </svg>
+                                {{ downtime.planned_downtime.start_time }} - {{ downtime.planned_downtime.end_time }}
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16.2,16.2L11,13V7H12.5V12.2L17,14.9L16.2,16.2Z"/>
+                                </svg>
+                            </div>
+                            <p>No hay tiempos muertos programados</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha (2/3): Tabla de Intervalos -->
+        <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-header">
+                <h3 class="card-title">Programación Semanal</h3>
+                <p class="card-description"> {{ month }} {{ week_start }} to {{ week_end }}</p>
+            </div>
+            
+            <div class="table-container" style="flex: 1; overflow: auto;">
+                <table class="table schedule-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 150px; position: sticky; left: 0; background-color: #4a5568; z-index: 10;">Horario</th>
+                            {% for day in workdays %}
+                                <th>{{ day }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for slot in time_slots %}
+                            <tr>
+                                <td class="time-slot-cell">
+                                    <div class="time-slot">
+                                        <span class="time-start">{{ slot.start }}</span>
+                                        <span class="time-divider">-</span>
+                                        <span class="time-end">{{ slot.end }}</span>
+                                    </div>
+                                </td>
+                                {% for day in workdays %}
+                                    <td class="schedule-cell">
+                                        {% for downtime in downtimes %}
+                                            <p class="downtime-item"> {{downtime.planned_downtime.name}} </p>
+                                        {% endfor %}
+                                        <div class="schedule-slot"></div>
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Estilos específicos para el calendario */
+        .calendar-container {
+            overflow: hidden;
+            border-radius: 0.5rem;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .calendar-header {
+            background-color: #4a5568;
+            color: #a0aec0;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            border: 1px solid #4a5568;
+        }
+
+        .calendar-day {
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            border: 1px solid #4a5568;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background-color: #374151;
+        }
+
+        .calendar-day.empty {
+            background-color: #1a1f2e;
+            cursor: default;
+        }
+
+        .calendar-day.today {
+            background-color: #ffffff;
+            color: #1a1f2e;
+            font-weight: bold;
+        }
+
+        /* Estilos para tiempos muertos */
+        .downtimes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .downtime-item {
+            background-color: #374151;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            border-left: 4px solid #d69e2e;
+            transition: all 0.2s;
+        }
+
+        .downtime-item:hover {
+            background-color: #4a5568;
+        }
+
+        .downtime-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .downtime-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin: 0;
+        }
+
+        .downtime-time {
+            display: flex;
+            align-items: center;
+            color: #a0aec0;
+            font-size: 0.75rem;
+        }
+
+        /* Estilos para la tabla de programación - Versión expandida como Teams */
+        .schedule-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .schedule-table-full {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .time-header-cell {
+            width: 120px;
+            background-color: #4a5568;
+            color: #a0aec0;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #4a5568;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .day-header-cell {
+            background-color: #4a5568;
+            color: #a0aec0;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid #4a5568;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .schedule-row {
+            height: calc((100vh - 400px) / 12); /* Distribuir uniformemente las filas */
+            min-height: 60px; /* Altura mínima como en Teams */
+        }
+
+        .time-cell {
+            background-color: #374151;
+            border: 1px solid #4a5568;
+            padding: 0;
+            width: 120px;
+            vertical-align: top;
+        }
+
+        .time-slot-full {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            font-weight: 500;
+            color: #a0aec0;
+        }
+
+        .time-start, .time-end {
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+
+        .time-divider {
+            color: #718096;
+            margin: 0.125rem 0;
+        }
+
+        .event-cell {
+            border: 1px solid #4a5568;
+            padding: 0;
+            vertical-align: top;
+            position: relative;
+        }
+
+        .event-slot {
+            height: 100%;
+            width: 100%;
+            padding: 0.5rem;
+            position: relative;
+            transition: all 0.2s;
+            min-height: inherit;
+        }
+
+        .event-cell:hover .event-slot {
+            background-color: rgba(74, 85, 104, 0.3);
+            cursor: pointer;
+        }
+
+        /* Líneas de separación más sutiles */
+        .schedule-table-full td {
+            border-right: 1px solid #4a5568;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .schedule-table-full td:last-child {
+            border-right: none;
+        }
+
+        .schedule-row:last-child td {
+            border-bottom: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-container > div:first-child {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .downtimes-list {
+                max-height: 300px;
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-day {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.875rem;
+            }
+            
+            .calendar-header {
+                padding: 0.5rem 0.25rem;
+            }
+            
+            .downtime-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+{% endblock %}

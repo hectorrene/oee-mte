@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %} Hora por hora {% endblock %}
+
+{% block content %}
+
+<style>
+.pills-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    align-items: center;
+}
+
+.model-pill {
+    cursor: pointer;
+    user-select: none;
+    border: 2px solid transparent;
+}
+
+.model-pill:hover {
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.pill-secondary:hover {
+    background-color: #5a6578;
+    color: #ffffff;
+    border-color: #5a6578;
+}
+
+.pill-primary:hover {
+    background-color: #f7fafc;
+    border-color: #f7fafc;
+}
+
+.table th,
+.table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Mejora para inputs en la tabla */
+.table input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    background-color: #4a5568;
+    border: 1px solid #4a5568;
+    border-radius: 0.375rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    text-align: center;
+    margin: 0 auto;
+}
+
+.table input[type="number"]:focus {
+    outline: none;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+</style>
+
+<h1 class="page-title"> Tablero hora por hora </h1>
+<p class="page-subtitle"> Seleccione un modelo para ingresar su producción </p>
+
+{% if planned_today %}
+    <div class="pills-container">
+        {% for prod in planned_today %}
+            {% for detail in prod.details.all %}
+                <span 
+                    class="pill pill-secondary model-pill" 
+                    style="padding: 0.50rem 1.00rem; font-size: 0.80rem;"
+                    data-model-id="{{ detail.model.id }}" 
+                    onclick="showModelInfo('{{ detail.model.id }}')">
+                    {{ detail.model.name }}
+                </span>
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    {% for prod in planned_today %}
+        {% for detail in prod.details.all %}
+            <div id="model-info-{{ detail.model.id }}" class="model-info-container" style="display: none;">
+                <div class="table-container mb-4">
+                    <div style="padding: 1rem; background-color: #374151; border-bottom: 1px solid #4a5568;">
+                        <h3 style="font-weight: 600; color: #ffffff; margin: 0;">{{ detail.model.name }}</h3>
+                        <p style="color: #a0aec0; font-size: 0.875rem; margin: 0.25rem 0 0 0;">{{ detail.cycles_planned }} ciclos planeados</p>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ciclo</th>
+                                <th>Cantidad esperada</th>
+                                <th>Cantidad producida</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cycle in ""|center:detail.cycles_planned %}
+                                <tr>
+                                    <td>Ciclo {{ forloop.counter }}</td>
+                                    <td>{{ detail.pieces_per_cycle }}</td>
+                                    <td><input type="number" placeholder="0"></td>
+                                    <td><span class="pill pill-secondary"> En proceso </span></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+        </div>
+        <h3 class="mb-2">No hay producción planeada</h3>
+        <p>No se encontró producción programada para hoy</p>
+    </div>
+{% endif %}
+
+<script>
+function showModelInfo(modelId) {
+    document.querySelectorAll('.model-info-container').forEach(container => {
+        container.style.display = 'none';
+    });
+    
+    document.querySelectorAll('.model-pill').forEach(pill => {
+        pill.classList.remove('pill-primary');
+        pill.classList.add('pill-secondary');
+    });
+    
+    document.getElementById('model-info-' + modelId).style.display = 'block';
+    
+    document.querySelector(`[data-model-id="${modelId}"]`).classList.remove('pill-secondary');
+    document.querySelector(`[data-model-id="${modelId}"]`).classList.add('pill-primary');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const firstPill = document.querySelector('.model-pill');
+    if (firstPill) {
+        const firstModelId = firstPill.getAttribute('data-model-id');
+        showModelInfo(firstModelId);
+    }
+});
+</script>
+
+{% endblock %}
