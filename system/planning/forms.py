@@ -14,6 +14,13 @@ class PlannedProductionForm(forms.ModelForm):
             "date": forms.DateInput(attrs={"type": "date", "class": "form-input"}),
         }
 
+# ## FORM PARA INGRESAR PRODUCCION POR UN EXCEL
+class UploadExcelForm(forms.Form):
+    file = forms.FileField(
+        widget=forms.FileInput(attrs={"class": "form-select","accept": ".xlsx,.xls"})
+    )
+
+
 ## FORM PARA INGRESAR LA INFORMACIÓN DE LOS MODELOS
 class ProductionDetailForm(forms.ModelForm):
     class Meta:
@@ -35,7 +42,7 @@ ProductionDetailFormSet = inlineformset_factory(
 class plannedDownTimeForm(forms.ModelForm):
     cells = forms.ModelMultipleChoiceField(
         queryset=Cell.objects.all(),
-        widget=forms.CheckboxSelectMultiple(attrs={"class": "form-input"}),  
+        widget=forms.CheckboxSelectMultiple(attrs={"class": "pill-secondary"}),  
         required=True,
         label="cells"
     )

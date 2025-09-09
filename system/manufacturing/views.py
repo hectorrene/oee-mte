@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from planning.models import plannedDownTime, plannedDownTimeCells, plannedProduction, productionDetail
 from .models import Defect
-from core.models import Cell 
+from core.models import Cell, modelRouting 
 from django.db.models import Q
 from django.utils import timezone
 
@@ -17,17 +17,6 @@ def machineDetails(request, cell_id):
 
     production_summary = []
     total_pieces = 0
-    
-    for prod in planned_today:
-        for detail in prod.details.all():
-            total_detail_pieces = detail.cycles_planned * detail.pieces_per_cycle
-            production_summary.append({
-                'model_name': detail.model.name,
-                'cycles_planned': detail.cycles_planned,
-                'pieces_per_cycle': detail.pieces_per_cycle,
-                'total_pieces': total_detail_pieces
-            })
-            total_pieces += total_detail_pieces
 
     context = {
         'cell': cell,

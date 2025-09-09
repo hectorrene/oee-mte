@@ -56,4 +56,40 @@
             </button>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pillContainer = document.querySelector('.pill-secondary');
+        if (!pillContainer) return;
+        
+        const labels = pillContainer.querySelectorAll('label');
+        
+        labels.forEach(function(label) {
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            if (!checkbox) return;
+            
+            function updatePillState() {
+                if (checkbox.checked) {
+                    label.style.backgroundColor = '#ffffff';
+                    label.style.color = '#1a1f2e';
+                    label.style.borderColor = '#ffffff';
+                    label.style.boxShadow = '0 4px 8px rgba(255,255,255,0.2)';
+                    label.style.transform = 'translateY(-1px)';
+                } else {
+                    label.style.backgroundColor = '#4a5568';
+                    label.style.color = '#cbd5e0';
+                    label.style.borderColor = '#4a5568';
+                    label.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                    label.style.transform = 'translateY(0)';
+                }
+            }
+            
+            // Estado inicial
+            updatePillState();
+            
+            // Escuchar cambios
+            checkbox.addEventListener('change', updatePillState);
+        });
+    });
+    </script>
+
 {% endblock %}

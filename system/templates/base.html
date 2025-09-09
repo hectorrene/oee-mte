@@ -395,53 +395,60 @@
         .pill-secondary {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 12px;
             padding: 0;
             margin: 0;
+            list-style: none;
         }
 
-        /* Cada elemento li debe ser una pill individual */
         .pill-secondary li {
             list-style: none;
             margin: 0;
             padding: 0;
         }
 
-        /* Ocultar los checkboxes */
         .pill-secondary input[type="checkbox"] {
             display: none;
         }
 
-        /* Estilar cada label como una pill */
         .pill-secondary label {
             display: inline-block;
-            padding: 8px 16px;
-            background-color: #e2e8f0;
-            color: #4a5568;
-            border: 2px solid transparent;
-            border-radius: 20px;
+            padding: 10px 18px;
+            background-color: #4a5568;
+            color: #cbd5e0;
+            border: 2px solid #4a5568;
+            border-radius: 25px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 14px;
+            font-weight: 500;
             white-space: nowrap;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Pill cuando está seleccionada (usando tus colores) */
+        /* Pill cuando está seleccionada */
         .pill-secondary input[type="checkbox"]:checked + label {
-            background-color: #4a5568;
-            color: #ffffff;
-            border-color: #2d3748;
+            background-color: #ffffff;
+            color: #1a1f2e;
+            border-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(255,255,255,0.2);
+            transform: translateY(-1px);
         }
 
         /* Efectos hover */
         .pill-secondary label:hover {
-            background-color: #cbd5e1;
-            color: #2d3748;
+            background-color: #2d3748;
+            color: #ffffff;
+            border-color: #2d3748;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
         .pill-secondary input[type="checkbox"]:checked + label:hover {
-            background-color: #2d3748;
-            color: #ffffff;
+            background-color: #f7fafc;
+            color: #1a1f2e;
+            border-color: #f7fafc;
         }
 
         .pill-success {

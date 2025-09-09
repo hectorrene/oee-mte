@@ -62,17 +62,46 @@
                         </div>
                         
 
-                        <button type="submit" class="btn btn-primary" >
+                        <button type="submit" name="manual_submit" class="btn btn-primary" >
                             Guardar Registro
                         </button>
+                </form>
             </div>
             
             <!-- Diaria Tab -->
             <div class="tab-content" id="diaria-tab">
-                <div class="form-group">
-                    <label class="form-label" for="daily-file">Archivo Heijunka Diario</label>
-                    <input type="file" id="daily-file" name="daily_file" class="form-input" accept=".xlsx,.xls">
-                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label for="id_ExcelFile" class="form-label"> Subir el archivo excel heijunka. </label>
+                    {{ excel_form.as_p }}
+                    <p class="page-subtitle"><i>Asegurese que el archivo que suba sea el archvio excel heijunka con la producción más actualizada.</i></p>
+
+                    <button type="submit" name="daily_preview" class="btn btn-secondary">Previsualizar</button>
+                    <button type="submit" name="daily_submit" class="btn btn-primary">Guardar Registro</button>
+                </form>
+            
+                <!-- PREVIEW -->
+                {% if preview_data %}
+                    <h3>Previsualización de Excel</h3>
+                    <table border="1" class="table">
+                        <thead>
+                            <tr>
+                                {% for key in preview_data.0.keys %}
+                                    <th>{{ key }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in preview_data %}
+                                <tr>
+                                    {% for val in row.values %}
+                                        <td>{{ val }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
             </div>
 
         </div>
