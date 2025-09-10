@@ -70,38 +70,39 @@
             
             <!-- Diaria Tab -->
             <div class="tab-content" id="diaria-tab">
-                <form method="POST" enctype="multipart/form-data">
+                <form id="excel-form" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <label for="id_ExcelFile" class="form-label"> Subir el archivo excel heijunka. </label>
                     {{ excel_form.as_p }}
-                    <p class="page-subtitle"><i>Asegurese que el archivo que suba sea el archvio excel heijunka con la producción más actualizada.</i></p>
-
-                    <button type="submit" name="daily_preview" class="btn btn-secondary">Previsualizar</button>
-                    <button type="submit" name="daily_submit" class="btn btn-primary">Guardar Registro</button>
+                    <p class="page-subtitle"><i>Asegúrese que el archivo que suba sea el Excel heijunka más actualizado.</i></p>
+                
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button type="button" id="preview-btn" class="btn btn-secondary">Previsualizar</button>
+                        <button type="submit" name="daily_submit" class="btn btn-primary">Guardar Registro</button>
+                    </div>
                 </form>
-            
-                <!-- PREVIEW -->
-                {% if preview_data %}
-                    <h3>Previsualización de Excel</h3>
-                    <table border="1" class="table">
-                        <thead>
-                            <tr>
-                                {% for key in preview_data.0.keys %}
-                                    <th>{{ key }}</th>
+
+                <!-- Mostrar errores -->
+                {% if excel_form.errors %}
+                    <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #e53e3e;">Errores en el archivo</div>
+                        </div>
+                        <ul style="color: #fed7d7; margin-left: 1rem;">
+                            {% for field, errors in excel_form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ field }}: {{ error }}</li>
                                 {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in preview_data %}
-                                <tr>
-                                    {% for val in row.values %}
-                                        <td>{{ val }}</td>
-                                    {% endfor %}
-                                </tr>
                             {% endfor %}
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
                 {% endif %}
+            
+                <!-- Contenedor para mensajes de error del preview -->
+                <div id="excel-messages"></div>
+                
+                <!-- Contenedor para el preview -->
+                <div id="excel-preview"></div>
             </div>
 
         </div>
@@ -151,6 +152,164 @@ document.addEventListener("DOMContentLoaded", function () {
         totalForms.value = formCount + 1;
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    const previewBtn = document.getElementById("preview-btn");
+    const form = document.getElementById("excel-form");
+
+    previewBtn.addEventListener("click", function () {
+        const formData = new FormData(form);
+        const messagesDiv = document.getElementById("excel-messages");
+        const previewDiv = document.getElementById("excel-preview");
+
+        // Limpiar contenido anterior
+        messagesDiv.innerHTML = "";
+        previewDiv.innerHTML = "";
+
+        // Mostrar indicador de carga
+        previewDiv.innerHTML = `
+            <div class="card" style="margin-top: 1rem;">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <p>Procesando archivo...</p>
+                </div>
+            </div>
+        `;
+
+        fetch("{% url 'addProduction' %}?preview=1", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            messagesDiv.innerHTML = "";
+            previewDiv.innerHTML = "";
+
+            // Mostrar errores si existen
+            if (data.errors && data.errors.length > 0) {
+                messagesDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #e53e3e;">
+                                <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem;" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                Errores encontrados
+                            </div>
+                        </div>
+                        <ul style="color: #fed7d7; margin: 0; padding-left: 1.5rem;">
+                            ${data.errors.map(error => `<li style="margin-bottom: 0.5rem;">${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Mostrar preview si existe datos
+            if (data.preview && data.preview.rows && data.preview.rows.length > 0) {
+                let previewCards = "";
+                
+                // Agrupar los datos por celda
+                const groupedData = {};
+                data.preview.rows.forEach(row => {
+                    const celda = row[0] || 'Sin celda';
+                    const modelo = row[1] || 'Sin modelo';
+                    const fecha = row[2] || 'Sin fecha';
+                    const cantidad = row[3] || '0';
+                    
+                    if (!groupedData[celda]) {
+                        groupedData[celda] = [];
+                    }
+                    
+                    groupedData[celda].push({
+                        modelo: modelo,
+                        fecha: fecha,
+                        cantidad: cantidad
+                    });
+                });
+
+                // Crear cards para cada celda
+                Object.keys(groupedData).forEach(celda => {
+                    const items = groupedData[celda];
+                    
+                    previewCards += `
+                        <div class="card" style="margin-top: 1rem;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem; color: #38a169;" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                    </svg>
+                                    Celda: ${celda}
+                                </div>
+                                <div class="card-description">Se procesarán ${items.length} registro(s)</div>
+                            </div>
+                            <div class="stats-grid">
+                                ${items.map(item => `
+                                    <div class="stat-card">
+                                        <div class="stat-header">
+                                            <div class="stat-title">Modelo</div>
+                                            <div class="stat-icon blue">
+                                                <svg style="width: 1rem; height: 1rem;" fill="white" viewBox="0 0 24 24">
+                                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="stat-value">${item.modelo}</div>
+                                        <div class="stat-description">
+                                            <strong>Fecha:</strong> ${item.fecha}<br>
+                                            <strong>Cantidad:</strong> ${item.cantidad} unidades
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                previewDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem; border-color: #38a169;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #38a169;">
+                                <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem;" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                </svg>
+                                Preview del archivo
+                            </div>
+                            <div class="card-description">Revise los datos antes de guardar</div>
+                        </div>
+                    </div>
+                    ${previewCards}
+                `;
+            } else if (data.preview) {
+                // Si no hay filas pero sí preview, mostrar estado vacío
+                previewDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem;">
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            <h3 style="color: #a0aec0; margin-bottom: 0.5rem;">Archivo sin datos</h3>
+                            <p>El archivo no contiene registros para mostrar</p>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            previewDiv.innerHTML = `
+                <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                    <div class="card-header">
+                        <div class="card-title" style="color: #e53e3e;">Error</div>
+                    </div>
+                    <p style="color: #fed7d7;">Error al procesar el archivo. Por favor, intente nuevamente.</p>
+                </div>
+            `;
+        });
+    });
+});
+
 </script>
 
 <style>
@@ -228,6 +387,10 @@ document.addEventListener("DOMContentLoaded", function () {
         border-bottom-color: #4a5568;
         border-left: 2px solid #ffffff;
         background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
     }
 }
 

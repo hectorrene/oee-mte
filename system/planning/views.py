@@ -1,10 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import plannedDownTime, plannedDownTimeCells, plannedProduction, productionDetail
-from core.models import Cell, Model
+from core.models import Cell, modelRouting
 from django.views.generic import ListView, CreateView
 from django.db.models import Q
 from django.utils import timezone
 from datetime import datetime, timedelta
+from django.http import JsonResponse
 import calendar
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
@@ -71,161 +72,134 @@ def productionPlan(request, cell_id):
 
     return render(request, 'planning/plannedProduction.html', context)
 
+def leer_excel(file):
+    wb = openpyxl.load_workbook(file, data_only=True)
+    ws = wb.active
+
+    # Fecha en C2
+    fecha = ws["C2"].value  
+
+    # Headers de B4:E4
+    headers = [ws.cell(row=4, column=col).value for col in range(2, 6)]
+
+    # Datos desde fila 5
+    data = []
+    for row in ws.iter_rows(min_row=5, min_col=2, max_col=5, values_only=True):
+        if all(v is None for v in row):
+            continue
+        data.append({
+            "Celda": row[0],
+            "WorkOrder": row[1],
+            "Modelo": row[2],
+            "Cantidad": row[3],
+            "Fecha": fecha
+        })
+
+    return data
+
+
+
+
+
+
+
+
+
+
+
+
+
 def addProduction(request):
-    preview_data = None
-    errors = []
+    if request.method == "POST" and request.GET.get("preview") == "1":
+        # ----------- PREVIEW VIA AJAX -----------
+        excel_form = UploadExcelForm(request.POST, request.FILES)
+        if excel_form.is_valid():
+            file = excel_form.cleaned_data["file"]
+            try:
+                preview_data = leer_excel(file)
 
-    if request.method == "POST":
-        if "manual_submit" in request.POST:
-            form = PlannedProductionForm(request.POST)
-            formset = ProductionDetailFormSet(request.POST)
-            if form.is_valid() and formset.is_valid():
-                planned = form.save(commit=False)
-                planned.created_by = request.user
-                planned.save()
+                # Validaciones simples
+                errors = []
+                for row in preview_data:
+                    if not Cell.objects.filter(name=row["Celda"]).exists():
+                        errors.append(f"Celda '{row['Celda']}' no existe.")
+                    if not modelRouting.objects.filter(model__name=row["Modelo"]).exists():
+                        errors.append(f"Modelo '{row['Modelo']}' no existe.")
+                    if row["Cantidad"] is None or row["Cantidad"] <= 0:
+                        errors.append(f"Cantidad inválida en WorkOrder {row['WorkOrder']}.")
 
-                details = formset.save(commit=False)
-                for detail in details:
-                    detail.planned_production = planned
-                    detail.save()
-                return redirect("planningMachineList")
+                return JsonResponse({
+                    "preview": {
+                        "headers": list(preview_data[0].keys()) if preview_data else [],
+                        "rows": [list(r.values()) for r in preview_data]
+                    },
+                    "errors": errors
+                })
+            except Exception as e:
+                return JsonResponse({"errors": [str(e)]})
+        else:
+            return JsonResponse({"errors": ["Archivo inválido."]})
 
-        # Preview de excel
-        elif "daily_preview" in request.POST:
-            excel_form = UploadExcelForm(request.POST, request.FILES)
-            if excel_form.is_valid():
+    elif request.method == "POST" and "daily_submit" in request.POST:
+        # ----------- GUARDAR EXCEL -----------
+        excel_form = UploadExcelForm(request.POST, request.FILES)
+        if excel_form.is_valid():
+            file = excel_form.cleaned_data["file"]
+            rows = leer_excel(file)
+
+            for row in rows:
+                cell = Cell.objects.get(name=row["Celda"])
+                
                 try:
-                    excel_file = request.FILES["file"]
-                    df = pd.read_excel(excel_file)
-                    
-                    # Validar que tenga las columnas necesarias
-                    required_columns = ['Fecha', 'Celda', 'Work order', 'Modelo', 'Cantidad']
-                    missing_columns = [col for col in required_columns if col not in df.columns]
-                    
-                    if missing_columns:
-                        errors.append(f"Faltan columnas: {', '.join(missing_columns)}")
-                    else:
-                        # Procesar los datos para preview
-                        processed_data = []
-                        for index, row in df.iterrows():
-                            try:
-                                # Validar que la celda exista
-                                cell = Cell.objects.filter(name=row['Celda']).first()
-                                if not cell:
-                                    errors.append(f"Fila {index + 1}: Celda '{row['Celda']}' no encontrada")
-                                    continue
-                                
-                                # Validar fecha
-                                if pd.isna(row['Fecha']):
-                                    errors.append(f"Fila {index + 1}: Fecha vacía")
-                                    continue
-                                
-                                # Procesar fecha (puede venir en diferentes formatos)
-                                if isinstance(row['Fecha'], str):
-                                    try:
-                                        date_obj = pd.to_datetime(row['Fecha']).date()
-                                    except:
-                                        errors.append(f"Fila {index + 1}: Formato de fecha inválido")
-                                        continue
-                                else:
-                                    date_obj = row['Fecha'].date() if hasattr(row['Fecha'], 'date') else row['Fecha']
-                                
-                                processed_data.append({
-                                    'row_number': index + 1,
-                                    'fecha': date_obj,
-                                    'celda': cell.name,
-                                    'celda_id': cell.id,
-                                    'work_order': row['Work order'],
-                                    'modelo': row['Modelo'],
-                                    'cantidad': row['Cantidad'],
-                                    'valid': True
-                                })
-                                
-                            except Exception as e:
-                                errors.append(f"Fila {index + 1}: Error procesando datos - {str(e)}")
-                        
-                        preview_data = processed_data
-                        
-                except Exception as e:
-                    errors.append(f"Error leyendo archivo: {str(e)}")
+                    model_routing = modelRouting.objects.get(model__name=row["Modelo"])
+                except modelRouting.DoesNotExist:
+                    messages.error(request, f"Modelo '{row["Modelo"]}' no existe. Saltando WorkOrder {row["WorkOrder"]}.")
+                    continue
 
-        # Submit de excel
-        elif "daily_submit" in request.POST:
-            excel_form = UploadExcelForm(request.POST, request.FILES)
-            if excel_form.is_valid():
-                try:
-                    excel_file = request.FILES["file"]
-                    df = pd.read_excel(excel_file)
-                    
-                    successful_saves = 0
-                    
-                    for index, row in df.iterrows():
-                        try:
-                            # Obtener la celda
-                            cell = Cell.objects.get(name=row['Celda'])
-                            
-                            # Procesar fecha
-                            if isinstance(row['Fecha'], str):
-                                date_obj = pd.to_datetime(row['Fecha']).date()
-                            else:
-                                date_obj = row['Fecha'].date() if hasattr(row['Fecha'], 'date') else row['Fecha']
-                            
-                            # Crear o obtener la producción planeada
-                            planned, created = plannedProduction.objects.get_or_create(
-                                cell=cell,
-                                date=date_obj,
-                                workorder=row['Work order'],
-                                defaults={'created_by': request.user}
-                            )
-                            
-                            # Si ya existe y no fue creado, actualizar created_by si es necesario
-                            if not created:
-                                planned.created_by = request.user
-                                planned.save()
-                            
-                            # Crear el detalle de producción
-                            # Aquí necesitas obtener el model_routing basado en el modelo del Excel
-                            # Asumiendo que tienes un modelo ModelRouting
-                            try:
-                                model_routing = ModelRouting.objects.get(name=row['Modelo'])  # Ajusta según tu modelo
-                                productionDetail.objects.get_or_create(
-                                    planned_production=planned,
-                                    model_routing=model_routing,
-                                    defaults={'quantity': row['Cantidad']}
-                                )
-                            except ModelRouting.DoesNotExist:
-                                errors.append(f"Fila {index + 1}: Modelo '{row['Modelo']}' no encontrado")
-                                continue
-                            
-                            successful_saves += 1
-                            
-                        except Cell.DoesNotExist:
-                            errors.append(f"Fila {index + 1}: Celda '{row['Celda']}' no encontrada")
-                        except Exception as e:
-                            errors.append(f"Fila {index + 1}: {str(e)}")
-                    
-                    if successful_saves > 0:
-                        messages.success(request, f"Se guardaron {successful_saves} registros correctamente")
-                    
-                    if not errors:
-                        return redirect("planningMachineList")
-                        
-                except Exception as e:
-                    errors.append(f"Error procesando archivo: {str(e)}")
+                planned_production, created = plannedProduction.objects.get_or_create(
+                    cell=cell,
+                    date=row["Fecha"],
+                    workorder=row["WorkOrder"],
+                    defaults={'created_by': request.user}
+                )
 
-    else:
-        form = PlannedProductionForm()
-        formset = ProductionDetailFormSet()
-        excel_form = UploadExcelForm()
+                production_detail, detail_created = productionDetail.objects.get_or_create(
+                    planned_production=planned_production,
+                    model_routing=model_routing,
+                    defaults={'quantity': row["Cantidad"]}
+                )
+                if not detail_created:
+                    production_detail.quantity += row["Cantidad"]
+                    production_detail.save()
 
-    return render(request, 'planning/addProduction.html', {
+            messages.success(request, "Producción cargada exitosamente.")
+            return redirect("planningMachineList")
+
+    # ----------- FORM NORMAL -----------
+    form = PlannedProductionForm()
+    formset = ProductionDetailFormSet()
+    excel_form = UploadExcelForm()
+    return render(request, "planning/addProduction.html", {
         "form": form,
         "formset": formset,
-        "excel_form": excel_form,
-        "preview_data": preview_data,
-        "errors": errors,
+        "excel_form": excel_form
     })
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class downTimeListView(ListView):
     model = Cell
     template_name = 'planning/downTimeList.html'

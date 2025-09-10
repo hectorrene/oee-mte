@@ -17,7 +17,10 @@ class PlannedProductionForm(forms.ModelForm):
 # ## FORM PARA INGRESAR PRODUCCION POR UN EXCEL
 class UploadExcelForm(forms.Form):
     file = forms.FileField(
-        widget=forms.FileInput(attrs={"class": "form-select","accept": ".xlsx,.xls"})
+        label = "Subir archivo",
+        widget=forms.FileInput(attrs={
+            "class": "form-select",
+            "accept": ".xlsx,.xls"})
     )
 
 
