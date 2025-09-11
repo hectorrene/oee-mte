@@ -12,7 +12,7 @@ def machineDetails(request, cell_id):
         Q(valid_from__lte=today, valid_to__gte=today)
     )
     plannings = plannedProduction.objects.filter(cell=cell)
-    production_details = productionDetail.objects.filter(planned_production__cell=cell)
+    production_details = productionDetail.objects.filter(planned_production__cell=cell, planned_production__date=today)
     planned_today = plannedProduction.objects.filter(cell=cell, date=today)
 
     production_summary = []

@@ -13,12 +13,6 @@ class plannedProduction(models.Model):
     
     class Meta:
         verbose_name_plural = 'Producción Planeada'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['date', 'workorder'],
-                name='unique_workorder_per_date'
-            )
-        ]
 
 class productionDetail(models.Model):
     planned_production = models.ForeignKey(plannedProduction, on_delete=models.CASCADE, related_name='details')

@@ -3,7 +3,20 @@ from django.forms import inlineformset_factory
 from .models import plannedProduction, productionDetail, plannedDownTime, plannedDownTimeCells
 from core.models import Cell
 
-## FORM PARA INGRESAR PRODUCCIÓN PLANEADA
+# =========================================
+# Form para subir un excel
+# =========================================
+class UploadExcelForm(forms.Form):
+    file = forms.FileField(
+        label = "Subir archivo",
+        widget=forms.FileInput(attrs={
+            "class": "form-select",
+            "accept": ".xlsx,.xls"})
+    )
+
+# =========================================
+# Form para ingresar producción planeado
+# =========================================
 class PlannedProductionForm(forms.ModelForm):
     class Meta:
         model = plannedProduction
@@ -14,17 +27,9 @@ class PlannedProductionForm(forms.ModelForm):
             "date": forms.DateInput(attrs={"type": "date", "class": "form-input"}),
         }
 
-# ## FORM PARA INGRESAR PRODUCCION POR UN EXCEL
-class UploadExcelForm(forms.Form):
-    file = forms.FileField(
-        label = "Subir archivo",
-        widget=forms.FileInput(attrs={
-            "class": "form-select",
-            "accept": ".xlsx,.xls"})
-    )
-
-
-## FORM PARA INGRESAR LA INFORMACIÓN DE LOS MODELOS
+# =========================================
+# Detalles de producción
+# =========================================
 class ProductionDetailForm(forms.ModelForm):
     class Meta:
         model = productionDetail
@@ -34,14 +39,9 @@ class ProductionDetailForm(forms.ModelForm):
             "quantity": forms.NumberInput(attrs={"class": "form-input", "min": 0}),
         }
 
-ProductionDetailFormSet = inlineformset_factory(
-    plannedProduction,
-    productionDetail,
-    form=ProductionDetailForm,
-    extra=1,
-    can_delete=True
-)
-
+# =========================================
+# Form para agregar un tiempo muerto planeado
+# =========================================
 class plannedDownTimeForm(forms.ModelForm):
     cells = forms.ModelMultipleChoiceField(
         queryset=Cell.objects.all(),

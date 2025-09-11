@@ -22,54 +22,6 @@
         <div class="tabs-content">
             <!-- Manual Tab -->
             <div class="tab-content active" id="manual-tab">
-                <form method="POST">
-                    {% csrf_token %}
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem;">
-                            <div class="form-group">
-                                <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
-                                {{ form.workorder }} 
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="id_cell"> Celda <span class="obligatorio"> * </span></label>
-                                {{ form.cell }}
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
-                                {{ form.date }}
-                            </div>
-                        </div>
-                        
-                        <div class="card" style="margin-top:1rem;">
-                            <div class="card-header">
-                                <div class="card-title">Detalles de Producción</div>
-                            </div>
-                            <div class="card-body" id="formset-container">
-                                {{ formset.management_form }}
-                                {% for f in formset %}
-                                    <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
-                                        <div class="form-group">
-                                            <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
-                                            {{ f.model_routing }}
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
-                                            {{ f.quantity }}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <button type="button" id="add-form" class="btn btn-secondary">+ Añadir otro modelo</button>
-                        </div>
-                        
-
-                        <button type="submit" name="manual_submit" class="btn btn-primary" >
-                            Guardar Registro
-                        </button>
-                </form>
-            </div>
-            
-            <!-- Diaria Tab -->
-            <div class="tab-content" id="diaria-tab">
                 <form id="excel-form" method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <label for="id_ExcelFile" class="form-label"> Subir el archivo excel heijunka. </label>
@@ -104,9 +56,49 @@
                 <!-- Contenedor para el preview -->
                 <div id="excel-preview"></div>
             </div>
-
+            
+            <!-- Diaria Tab -->
+            <div class="tab-content" id="diaria-tab">
+                <form method="POST">
+                    {% csrf_token %}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                                {{ form.workorder }} 
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_cell"> Celda <span class="obligatorio"> * </span></label>
+                                {{ form.cell }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                                {{ form.date }}
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin-top:1rem;">
+                            <div class="card-header">
+                                <div class="card-title">Detalles de Producción</div>
+                            </div>
+                            <div class="card-body" id="formset-container">
+                                <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                        {{ detail_form.model_routing }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                        {{ detail_form.quantity }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" name="manual_submit" class="btn btn-primary" >
+                            Guardar Registro
+                        </button>
+                </form> 
+            </div>
         </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -128,28 +120,6 @@ document.addEventListener('DOMContentLoaded', function() {
             button.classList.add('active');
             document.getElementById(tabId + '-tab').classList.add('active');
         });
-    });
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-    const addButton = document.getElementById("add-form");
-    const formsetContainer = document.getElementById("formset-container");
-    const totalForms = document.getElementById("id_details-TOTAL_FORMS"); 
-    // OJO: el "details" depende del `related_name` o del prefijo del formset
-    // Si Django genera otro id (ej. id_productiondetail_set-TOTAL_FORMS), hay que ajustarlo
-
-    addButton.addEventListener("click", function () {
-        const formCount = parseInt(totalForms.value);
-        const newForm = formsetContainer.querySelector(".formset-form").cloneNode(true);
-
-        // Reemplazar índices en los atributos name y id
-        newForm.innerHTML = newForm.innerHTML.replaceAll(
-            new RegExp(`-${formCount - 1}-`, "g"),
-            `-${formCount}-`
-        );
-
-        formsetContainer.appendChild(newForm);
-        totalForms.value = formCount + 1;
     });
 });
 

@@ -9,16 +9,22 @@ from django.http import JsonResponse
 import calendar
 from django.urls import reverse_lazy
 from django.views.generic import CreateView
-from .forms import PlannedProductionForm, ProductionDetailFormSet, plannedDownTimeForm, UploadExcelForm
+from .forms import PlannedProductionForm, ProductionDetailForm, plannedDownTimeForm, UploadExcelForm
 from django.contrib import messages
 import io
 import openpyxl
 
+# =========================================
+# Lista de máquinas para producción
+# =========================================
 class machineListView(ListView):
     model = Cell
     template_name = 'planning/machineList.html'
     context_object_name = 'machines'
-
+    
+# =========================================
+# Detalles de producción máquina 
+# =========================================
 def productionPlan(request, cell_id):
     cell = get_object_or_404(Cell, id=cell_id)
     week_offset = int(request.GET.get('week_offset', 0))
@@ -40,7 +46,9 @@ def productionPlan(request, cell_id):
     # Organizar los datos por fecha
     production_by_date = {}
     for production in production_data:
-        production_by_date[production.date] = production.details.all()
+        if production.date not in production_by_date:
+            production_by_date[production.date] = []
+        production_by_date[production.date].extend(production.details.all())
     
     # Preparar el contexto para el template
     calendar_data = []
@@ -72,6 +80,9 @@ def productionPlan(request, cell_id):
 
     return render(request, 'planning/plannedProduction.html', context)
 
+# =========================================
+# Lee el contenido del excel
+# =========================================
 def leer_excel(file):
     wb = openpyxl.load_workbook(file, data_only=True)
     ws = wb.active
@@ -97,18 +108,9 @@ def leer_excel(file):
 
     return data
 
-
-
-
-
-
-
-
-
-
-
-
-
+# =========================================
+# Maneja los forms de agregar producción: preview, excel, manual
+# =========================================
 def addProduction(request):
     if request.method == "POST" and request.GET.get("preview") == "1":
         # ----------- PREVIEW VIA AJAX -----------
@@ -175,36 +177,44 @@ def addProduction(request):
             messages.success(request, "Producción cargada exitosamente.")
             return redirect("planningMachineList")
 
+    elif request.method == "POST":
+        form = PlannedProductionForm(request.POST)
+        detail_form = ProductionDetailForm(request.POST)
+        if form.is_valid() and detail_form.is_valid():
+            planned_production = form.save(commit=False)
+            planned_production.created_by = request.user
+            planned_production.save()
+
+            production_detail = detail_form.save(commit=False)
+            production_detail.planned_production = planned_production
+            production_detail.save()
+
+            messages.success(request, "Producción planeada agregada exitosamente.")
+            return redirect("planningMachineList")
+        else:
+            messages.error(request, "Hubo un error al agregar la producción planeada.")
+
     # ----------- FORM NORMAL -----------
     form = PlannedProductionForm()
-    formset = ProductionDetailFormSet()
+    detail_form = ProductionDetailForm()
     excel_form = UploadExcelForm()
     return render(request, "planning/addProduction.html", {
         "form": form,
-        "formset": formset,
+        "detail_form": detail_form,
         "excel_form": excel_form
     })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# =========================================
+# Lista de máquinas para downtime
+# =========================================
 class downTimeListView(ListView):
     model = Cell
     template_name = 'planning/downTimeList.html'
     context_object_name = 'machines'
 
+# =========================================
+# Detalles máquina tiempo muerto
+# =========================================
 def plannedDownTime (request, cell_id):
     cell = get_object_or_404(Cell, pk=cell_id)
     planned_downtime_cells = plannedDownTimeCells.objects.filter(cell=cell).select_related('planned_downtime')
@@ -254,7 +264,10 @@ def plannedDownTime (request, cell_id):
         'time_slots': time_slots
     }
     return render(request, 'planning/plannedDownTime.html', context)
-    
+
+# =========================================
+# Maneja el form de agregar downtime
+# =========================================
 def addDownTime(request):
     if request.method == "POST":
         form = plannedDownTimeForm(request.POST)
