@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %} Hora por hora {% endblock %}
+
+{% block content %}
+
+<div class="page-title"> Registrar hora por hora </div>
+<div class="page-subtitle"> Registre los modelos y su cantidad total a producir por hora el día de hoy. </div>
+
+<div class="card">
+    <p class="card-title"> Hora por hora </p>
+    <form method="POST">
+        {% csrf_token %}
+        {{ formset.management_form }}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                    {{ form.workorder }} 
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                    {{ form.date }}
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top:1rem;">
+                <div class="card-header">
+                    <div class="card-title">Detalles de Producción</div>
+                </div>
+                <div class="card-body" id="formset-container">
+                    {% for f in formset %}
+                        <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                {{ f.model_routing }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                {{ f.quantity }}
+                            </div>
+                            <button type="button" class="btn btn-outline" style="flex: 1; height: 43px; margin-top: 27px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
+                    {% endfor %}
+                    <button type="button" id="add-part-btn" class="btn btn-outline btn-full btn-icon mt-4" style="width: 100%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Añadir parte
+                    </button>
+                </div>
+            <button class="btn btn-primary" style="margin-top: 15px; margin-left: auto; display: block; width: 15%;" type="submit"> Guardar </button>    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('formset-container');
+        const addPartBtn = document.getElementById('add-part-btn');
+        let formCount = document.querySelectorAll('.formset-form').length;
+    
+        // Función para actualizar los índices de los formularios
+        function updateFormIndexes() {
+            const forms = document.querySelectorAll('.formset-form');
+            forms.forEach((form, index) => {
+                const inputs = form.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    if (input.name) {
+                        // Actualizar el name del input para que coincida con el índice
+                        input.name = input.name.replace(/productiondetail_set-\d+/, `productiondetail_set-${index}`);
+                        input.id = input.id.replace(/id_productiondetail_set-\d+/, `id_productiondetail_set-${index}`);
+                    }
+                });
+    
+                const labels = form.querySelectorAll('label');
+                labels.forEach(label => {
+                    if (label.getAttribute('for')) {
+                        label.setAttribute('for', label.getAttribute('for').replace(/id_productiondetail_set-\d+/, `id_productiondetail_set-${index}`));
+                    }
+                });
+            });
+    
+            // Actualizar el campo TOTAL_FORMS
+            const totalFormsInput = document.querySelector('input[name$="TOTAL_FORMS"]');
+            if (totalFormsInput) {
+                totalFormsInput.value = forms.length;
+            }
+        }
+    
+        // Función para actualizar los botones de eliminar
+        function updateRemoveButtons() {
+            const forms = document.querySelectorAll('.formset-form');
+            const removeButtons = document.querySelectorAll('.remove-part');
+            
+            if (forms.length === 1) {
+                // Si solo hay una fila, deshabilitar el botón de eliminar
+                removeButtons[0].disabled = true;
+                removeButtons[0].style.opacity = '0.5';
+            } else {
+                // Si hay más de una fila, habilitar todos los botones
+                removeButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                });
+            }
+        }
+    
+        // Agregar nueva fila
+        addPartBtn.addEventListener('click', function() {
+            // Clonar la primera fila como template
+            const firstForm = formsetContainer.querySelector('.formset-form');
+            const newForm = firstForm.cloneNode(true);
+            
+            // Limpiar valores de los inputs clonados
+            const inputs = newForm.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                if (input.type !== 'hidden') {
+                    input.value = '';
+                    if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0;
+                    }
+                }
+            });
+    
+            // Insertar la nueva fila antes del botón "Añadir parte"
+            formsetContainer.insertBefore(newForm, addPartBtn);
+            
+            // Configurar el botón de eliminar de la nueva fila
+            const removeBtn = newForm.querySelector('.remove-part');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    removeForm(newForm);
+                });
+            }
+    
+            // Actualizar índices y botones
+            updateFormIndexes();
+            updateRemoveButtons();
+        });
+    
+        // Función para eliminar una fila
+        function removeForm(formToRemove) {
+            const forms = document.querySelectorAll('.formset-form');
+            
+            // Solo eliminar si hay más de una fila
+            if (forms.length > 1) {
+                formToRemove.remove();
+                updateFormIndexes();
+                updateRemoveButtons();
+            }
+        }
+    
+        // Configurar botones de eliminar existentes
+        function setupRemoveButtons() {
+            const removeButtons = document.querySelectorAll('.remove-part');
+            removeButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const formToRemove = btn.closest('.formset-form');
+                    removeForm(formToRemove);
+                });
+            });
+        }
+    
+        // Inicializar
+        setupRemoveButtons();
+        updateRemoveButtons();
+    });
+    </script>
+
+
+{% endblock %}

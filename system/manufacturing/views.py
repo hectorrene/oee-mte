@@ -1,6 +1,7 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from planning.models import plannedDownTime, plannedDownTimeCells, plannedProduction, productionDetail
 from .models import Defect
+from .forms import PlannedProductionForm, ProductionFormSet, production_detail_formset_factory
 from core.models import Cell, modelRouting 
 from django.db.models import Q
 from django.utils import timezone
@@ -28,6 +29,34 @@ def machineDetails(request, cell_id):
     }
 
     return render(request, 'manufacturing/machineDetails.html', context)
+
+def addHrxhr(request, cell_id):
+    cell = get_object_or_404(Cell, id=cell_id)
+
+    if request.method == "POST":
+        form = PlannedProductionForm(request.POST)
+        formset = production_detail_formset_factory(cell)(request.POST, form_kwargs={'cell': cell})
+
+        if form.is_valid() and formset.is_valid():
+            planned = form.save(commit=False)
+            planned.created_by = request.user
+            planned.cell = cell   
+            planned.save()
+
+            formset.instance = planned
+            formset.save()
+
+            return redirect("hrxhr", cell_id=cell.id)
+    else:
+        form = PlannedProductionForm()
+        formset = production_detail_formset_factory(cell)(form_kwargs={'cell': cell})
+
+    return render(request, "manufacturing/addHrxhr.html", {
+        "form": form,
+        "formset": formset,
+        "cell": cell,
+    })
+
 
 def hrxhr (request, cell_id):
     cell = get_object_or_404(Cell, id=cell_id)
