@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %} Hora por hora {% endblock %}
+
+{% block content %}
+
+<div class="page-title"> Registrar hora por hora </div>
+<div class="page-subtitle"> Registre los modelos y su cantidad total a producir por hora el día de hoy. </div>
+
+<div class="card">
+    <p class="card-title"> Hora por hora </p>
+    <form method="POST">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        {% for f in formset %}
+            <div class="formset-form-wrapper">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                        {{ f.date }}
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top:1rem;">
+                    <div class="card-header">
+                        <div class="card-title">Detalles de Producción</div>
+                    </div>
+                    <div class="card-body formset-container">
+                            <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                                    {{ f.workorder }} 
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                    {{ f.model_routing }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                    {{ f.quantity }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label delete-label" id="delete-btn"> Eliminar </label>
+                                    <button class="btn btn-outline delete-row-btn" style="width:100%;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+                    <button type="button" id="add-part-btn" class="btn btn-outline btn-full btn-icon mt-4" style="width: 100%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        Añadir workorder 
+                    </button>
+                </div>
+            <button class="btn btn-primary" style="margin-top: 15px; margin-left: auto; display: block; width: 15%;" type="submit"> Guardar </button>    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const addBtn = document.getElementById("add-part-btn");
+        const formsetContainer = document.querySelector(".formset-container");
+        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+
+        addBtn.addEventListener("click", function () {
+            const currentForms = document.querySelectorAll(".formset-form").length;
+            const emptyForm = document.querySelector(".formset-form").cloneNode(true);
+
+            emptyForm.querySelectorAll("input, select").forEach(el => {
+                if (el.tagName === "SELECT") {
+                    el.selectedIndex = 0;
+                } else {
+                    el.value = "";
+                }
+                const nameAttr = el.getAttribute("name");
+                if (nameAttr) {
+                    el.setAttribute("name", nameAttr.replace(/form-(\d+)-/, `form-${currentForms}-`));
+                    el.setAttribute("id", el.id.replace(/form-(\d+)-/, `form-${currentForms}-`));
+                }
+            });
+            emptyForm.querySelector(".delete-label").style.display = "block"; 
+
+            formsetContainer.appendChild(emptyForm);
+            totalForms.value = parseInt(totalForms.value) + 1;
+        });
+
+        formsetContainer.addEventListener("click", function (e) {
+            if (e.target.closest(".delete-row-btn")) {
+                e.preventDefault();
+                const rowToDelete = e.target.closest(".formset-form");
+
+                if (formsetContainer.querySelectorAll(".formset-form").length > 1) {
+                    rowToDelete.remove();
+                    updateFormIndices();
+                    totalForms.value = parseInt(totalForms.value) - 1;
+                } else {
+
+                    alert("No puedes eliminar todas las workorders.");
+                }
+            }
+        });
+
+        function updateFormIndices() {
+            formsetContainer.querySelectorAll(".formset-form").forEach((formRow, index) => {
+                formRow.querySelectorAll("input, select").forEach(el => {
+                    const nameAttr = el.getAttribute("name");
+                    if (nameAttr) {
+                        el.setAttribute("name", nameAttr.replace(/form-(\d+)-/, `form-${index}-`));
+                        el.setAttribute("id", el.id.replace(/form-(\d+)-/, `form-${index}-`));
+                    }
+                });
+            });
+        }
+    });
+</script>
+    
+
+{% endblock %}

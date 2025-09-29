@@ -1,0 +1,368 @@
+{% extends 'base.html' %}
+
+{% block title %}Agregar Producción{% endblock %}
+
+{% block content %}
+<div class="page-title">Producción planeada</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Agregar producción</div>
+        <div class="card-description">Puede agregar la producción manualmente o subir el archivo heijunka con el formato indicado</div>
+    </div>
+    
+    <!-- Tabs Navigation -->
+    <div class="tabs-container">
+        <div class="tabs-nav">
+            <button class="tab-button active" data-tab="manual">Manual</button>
+            <button class="tab-button" data-tab="diaria">Diaria</button>
+        </div>
+        
+        <!-- Tab Contents -->
+        <div class="tabs-content">
+            <!-- Manual Tab -->
+            <div class="tab-content active" id="manual-tab">
+                <form id="excel-form" method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label for="id_ExcelFile" class="form-label"> Subir el archivo excel heijunka. </label>
+                    {{ excel_form.as_p }}
+                    <p class="page-subtitle"><i>Asegúrese que el archivo que suba sea el Excel heijunka más actualizado.</i></p>
+                
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button type="button" id="preview-btn" class="btn btn-secondary">Previsualizar</button>
+                        <button type="submit" name="daily_submit" class="btn btn-primary">Guardar Registro</button>
+                    </div>
+                </form>
+
+                <!-- Mostrar errores -->
+                {% if excel_form.errors %}
+                    <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #e53e3e;">Errores en el archivo</div>
+                        </div>
+                        <ul style="color: #fed7d7; margin-left: 1rem;">
+                            {% for field, errors in excel_form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ field }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            
+                <!-- Contenedor para mensajes de error del preview -->
+                <div id="excel-messages"></div>
+                
+                <!-- Contenedor para el preview -->
+                <div id="excel-preview"></div>
+            </div>
+            
+            <!-- Diaria Tab -->
+            <div class="tab-content" id="diaria-tab">
+                <form method="POST">
+                    {% csrf_token %}
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem;">
+                            <div class="form-group">
+                                <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                                {{ form.workorder }} 
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_cell"> Celda <span class="obligatorio"> * </span></label>
+                                {{ form.cell }}
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                                {{ form.date }}
+                            </div>
+                        </div>
+                        
+                        <div class="card" style="margin-top:1rem;">
+                            <div class="card-header">
+                                <div class="card-title">Detalles de Producción</div>
+                            </div>
+                            <div class="card-body" id="formset-container">
+                                <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
+                                    <div class="form-group">
+                                        <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                        {{ detail_form.model_routing }}
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                        {{ detail_form.quantity }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" name="manual_submit" class="btn btn-primary" >
+                            Guardar Registro
+                        </button>
+                </form> 
+            </div>
+        </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const tabId = button.getAttribute('data-tab');
+            
+            // Remove active class from all buttons and contents
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            button.classList.add('active');
+            document.getElementById(tabId + '-tab').classList.add('active');
+        });
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const previewBtn = document.getElementById("preview-btn");
+    const form = document.getElementById("excel-form");
+
+    previewBtn.addEventListener("click", function () {
+        const formData = new FormData(form);
+        const messagesDiv = document.getElementById("excel-messages");
+        const previewDiv = document.getElementById("excel-preview");
+
+        // Limpiar contenido anterior
+        messagesDiv.innerHTML = "";
+        previewDiv.innerHTML = "";
+
+        // Mostrar indicador de carga
+        previewDiv.innerHTML = `
+            <div class="card" style="margin-top: 1rem;">
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <p>Procesando archivo...</p>
+                </div>
+            </div>
+        `;
+
+        fetch("{% url 'addProduction' %}?preview=1", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            messagesDiv.innerHTML = "";
+            previewDiv.innerHTML = "";
+
+            // Mostrar errores si existen
+            if (data.errors && data.errors.length > 0) {
+                messagesDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #e53e3e;">
+                                <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem;" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                Errores encontrados
+                            </div>
+                        </div>
+                        <ul style="color: #fed7d7; margin: 0; padding-left: 1.5rem;">
+                            ${data.errors.map(error => `<li style="margin-bottom: 0.5rem;">${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Mostrar preview si existe datos
+            if (data.preview && data.preview.rows && data.preview.rows.length > 0) {
+                let previewCards = "";
+                
+                // Agrupar los datos por celda
+                const groupedData = {};
+                data.preview.rows.forEach(row => {
+                    const celda = row[0] || 'Sin celda';
+                    const modelo = row[1] || 'Sin modelo';
+                    const fecha = row[2] || 'Sin fecha';
+                    const cantidad = row[3] || '0';
+                    
+                    if (!groupedData[celda]) {
+                        groupedData[celda] = [];
+                    }
+                    
+                    groupedData[celda].push({
+                        modelo: modelo,
+                        fecha: fecha,
+                        cantidad: cantidad
+                    });
+                });
+
+                // Crear cards para cada celda
+                Object.keys(groupedData).forEach(celda => {
+                    const items = groupedData[celda];
+                    
+                    previewCards += `
+                        <div class="card" style="margin-top: 1rem;">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem; color: #38a169;" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                    </svg>
+                                    Celda: ${celda}
+                                </div>
+                                <div class="card-description">Se procesarán ${items.length} registro(s)</div>
+                            </div>
+                            <div class="stats-grid">
+                                ${items.map(item => `
+                                    <div class="stat-card">
+                                        <div class="stat-header">
+                                            <div class="stat-title">Modelo</div>
+                                            <div class="stat-icon blue">
+                                                <svg style="width: 1rem; height: 1rem;" fill="white" viewBox="0 0 24 24">
+                                                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="stat-value">${item.modelo}</div>
+                                        <div class="stat-description">
+                                            <strong>Fecha:</strong> ${item.fecha}<br>
+                                            <strong>Cantidad:</strong> ${item.cantidad} unidades
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                previewDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem; border-color: #38a169;">
+                        <div class="card-header">
+                            <div class="card-title" style="color: #38a169;">
+                                <svg style="width: 1.25rem; height: 1.25rem; display: inline-block; margin-right: 0.5rem;" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                </svg>
+                                Preview del archivo
+                            </div>
+                            <div class="card-description">Revise los datos antes de guardar</div>
+                        </div>
+                    </div>
+                    ${previewCards}
+                `;
+            } else if (data.preview) {
+                // Si no hay filas pero sí preview, mostrar estado vacío
+                previewDiv.innerHTML = `
+                    <div class="card" style="margin-top: 1rem;">
+                        <div class="empty-state">
+                            <svg class="empty-state-icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+                            </svg>
+                            <h3 style="color: #a0aec0; margin-bottom: 0.5rem;">Archivo sin datos</h3>
+                            <p>El archivo no contiene registros para mostrar</p>
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            previewDiv.innerHTML = `
+                <div class="card" style="margin-top: 1rem; border-color: #e53e3e;">
+                    <div class="card-header">
+                        <div class="card-title" style="color: #e53e3e;">Error</div>
+                    </div>
+                    <p style="color: #fed7d7;">Error al procesar el archivo. Por favor, intente nuevamente.</p>
+                </div>
+            `;
+        });
+    });
+});
+
+</script>
+
+<style>
+/* Tabs Styles */
+.tabs-container {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    height: fit-content;
+    min-height: 500px;
+}
+
+.tabs-nav {
+    display: flex;
+    border-bottom: 1px solid #4a5568;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    color: #a0aec0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    flex: 1;
+    text-align: center;
+}
+
+.tab-button:hover {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab-button.active {
+    color: #ffffff;
+    border-bottom-color: #ffffff;
+}
+
+.tabs-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tab-content {
+    display: none;
+    flex: 1;
+    padding: 1.5rem 0;
+}
+
+.tab-content.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Responsive tabs */
+@media (max-width: 768px) {
+    .tabs-nav {
+        flex-direction: column;
+    }
+    
+    .tab-button {
+        text-align: left;
+        border-bottom: 1px solid #4a5568;
+        border-right: none;
+    }
+    
+    .tab-button.active {
+        border-bottom-color: #4a5568;
+        border-left: 2px solid #ffffff;
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+{% endblock %}

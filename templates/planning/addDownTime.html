@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %} Tiempo muerto {% endblock%}
+
+{% block content %}
+
+<h1 class="page-title"> Agregar tiempo muerto </h1>
+<p class="page-subtitle"> Ingrese los detalles del evento. </p>
+
+<div class="card">
+    <form method="POST">
+        {% csrf_token %}
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="id_name"> Nombre <span class="obligatorio"> * </span></label>
+                {{form.name}}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="id_description"> Descripción </label>
+                {{form.description}}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_start_time"> Hora de inicio <span class="obligatorio"> * </span></label>
+                    {{form.start_time}}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_end_time"> Hora de terminación <span class="obligatorio"> * </span></label>
+                    {{form.end_time}}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_valid_from"> Fecha de inicio <span class="obligatorio"> * </span></label>
+                    {{form.valid_from}}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_valid_to"> Fecha de terminación <span class="obligatorio"> * </span></label>
+                    {{form.valid_to}}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_repetition"> Frecuencia <span class="obligatorio"> * </span></label>
+                    {{form.repetition}}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_cell"> Celda <span class="obligatorio"> * </span></label>
+                {{form.cells}}
+            </div>
+            
+            <button type="submit" class="btn btn-primary" >
+                Guardar Registro
+            </button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pillContainer = document.querySelector('.pill-secondary');
+        if (!pillContainer) return;
+        
+        const labels = pillContainer.querySelectorAll('label');
+        
+        labels.forEach(function(label) {
+            const checkbox = label.querySelector('input[type="checkbox"]');
+            if (!checkbox) return;
+            
+            function updatePillState() {
+                if (checkbox.checked) {
+                    label.style.backgroundColor = '#ffffff';
+                    label.style.color = '#1a1f2e';
+                    label.style.borderColor = '#ffffff';
+                    label.style.boxShadow = '0 4px 8px rgba(255,255,255,0.2)';
+                    label.style.transform = 'translateY(-1px)';
+                } else {
+                    label.style.backgroundColor = '#4a5568';
+                    label.style.color = '#cbd5e0';
+                    label.style.borderColor = '#4a5568';
+                    label.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                    label.style.transform = 'translateY(0)';
+                }
+            }
+            
+            // Estado inicial
+            updatePillState();
+            
+            // Escuchar cambios
+            checkbox.addEventListener('change', updatePillState);
+        });
+    });
+    </script>
+
+{% endblock %}

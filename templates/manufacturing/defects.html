@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title%} Defectos {% endblock %}
+
+{% block content %}
+
+<h1 class="page-title"> Registrar defectos </h1>
+<p class="page-subtitle"> Registre los detalles de los defectos ocurridos </p>
+
+<div class="card">
+    <div class="card-header">
+        <h3> Defectos </h3>
+        <p> Complete la información de los defectos </p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label"> Modelo del defecto <span class="obligatorio"> * </span></label>
+                {{form.model}}
+            </div>
+            <div class="form-group">
+                <label class="form-label"> Cantidad de defectos <span class="obligatorio"> * </span> </label>
+                {{ form.quantity }}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"> Causa del defecto <span class="obligatorio"> * </span></label>
+            {{ form.cause }}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label"> Comentarios adicionales </label>
+            {{ form.comments }}
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-left: auto;">
+            Guardar Registro
+        </button>
+    </form>
+</div>
+
+{% endblock %}
