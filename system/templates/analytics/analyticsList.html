@@ -8,7 +8,7 @@
 <p class="page-subtitle"> Seleccione una máquina para conocer detalles.</p>
 
 {% for machine in machines %}
-<div class="card card-clickable">
+<div class="card card-clickable" onclick="location.href='{% url 'machineDashboard' machine.id %}'">
     <div class="card-header">
         <div class="flex justify-between items-center">
             <div>
@@ -24,7 +24,6 @@
     
     <div class="flex justify-between items-center">
         <div class="flex gap-2">
-            <span class="pill pill-secondary">Activa</span>
             {% if machine.is_active %}
                 <span class="pill pill-success">En línea</span>
             {% else %}

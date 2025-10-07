@@ -12,165 +12,115 @@
     <form method="POST">
         {% csrf_token %}
         {{ formset.management_form }}
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                <div class="form-group">
-                    <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
-                    {{ form.workorder }} 
+        {% for f in formset %}
+            <div class="formset-form-wrapper">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
+                        {{ f.date }}
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="id_date"> Fecha <span class="obligatorio"> * </span></label>
-                    {{ form.date }}
+                
+                <div class="card" style="margin-top:1rem;">
+                    <div class="card-header">
+                        <div class="card-title">Detalles de Producción</div>
+                    </div>
+                    <div class="card-body formset-container">
+                            <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label class="form-label" for="id_workorder"> Work order <span class="obligatorio"> * </span></label>
+                                    {{ f.workorder }} 
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
+                                    {{ f.model_routing }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
+                                    {{ f.quantity }}
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label delete-label" id="delete-btn"> Eliminar </label>
+                                    <button class="btn btn-outline delete-row-btn" style="width:100%;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="card" style="margin-top:1rem;">
-                <div class="card-header">
-                    <div class="card-title">Detalles de Producción</div>
-                </div>
-                <div class="card-body" id="formset-container">
-                    {% for f in formset %}
-                        <div class="formset-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                            <div class="form-group">
-                                <label class="form-label" for="{{ f.model_routing.id_for_label }}"> Modelo <span class="obligatorio">*</span></label>
-                                {{ f.model_routing }}
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" for="{{ f.quantity.id_for_label }}"> Cantidad <span class="obligatorio">*</span></label>
-                                {{ f.quantity }}
-                            </div>
-                            <button type="button" class="btn btn-outline" style="flex: 1; height: 43px; margin-top: 27px;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                                Eliminar
-                            </button>
-                        </div>
-                    {% endfor %}
+        {% endfor %}
                     <button type="button" id="add-part-btn" class="btn btn-outline btn-full btn-icon mt-4" style="width: 100%;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
-                        Añadir parte
+                        Añadir workorder 
                     </button>
                 </div>
             <button class="btn btn-primary" style="margin-top: 15px; margin-left: auto; display: block; width: 15%;" type="submit"> Guardar </button>    </form>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const formsetContainer = document.getElementById('formset-container');
-        const addPartBtn = document.getElementById('add-part-btn');
-        let formCount = document.querySelectorAll('.formset-form').length;
-    
-        // Función para actualizar los índices de los formularios
-        function updateFormIndexes() {
-            const forms = document.querySelectorAll('.formset-form');
-            forms.forEach((form, index) => {
-                const inputs = form.querySelectorAll('input, select');
-                inputs.forEach(input => {
-                    if (input.name) {
-                        // Actualizar el name del input para que coincida con el índice
-                        input.name = input.name.replace(/productiondetail_set-\d+/, `productiondetail_set-${index}`);
-                        input.id = input.id.replace(/id_productiondetail_set-\d+/, `id_productiondetail_set-${index}`);
-                    }
-                });
-    
-                const labels = form.querySelectorAll('label');
-                labels.forEach(label => {
-                    if (label.getAttribute('for')) {
-                        label.setAttribute('for', label.getAttribute('for').replace(/id_productiondetail_set-\d+/, `id_productiondetail_set-${index}`));
-                    }
-                });
-            });
-    
-            // Actualizar el campo TOTAL_FORMS
-            const totalFormsInput = document.querySelector('input[name$="TOTAL_FORMS"]');
-            if (totalFormsInput) {
-                totalFormsInput.value = forms.length;
-            }
-        }
-    
-        // Función para actualizar los botones de eliminar
-        function updateRemoveButtons() {
-            const forms = document.querySelectorAll('.formset-form');
-            const removeButtons = document.querySelectorAll('.remove-part');
-            
-            if (forms.length === 1) {
-                // Si solo hay una fila, deshabilitar el botón de eliminar
-                removeButtons[0].disabled = true;
-                removeButtons[0].style.opacity = '0.5';
-            } else {
-                // Si hay más de una fila, habilitar todos los botones
-                removeButtons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                });
-            }
-        }
-    
-        // Agregar nueva fila
-        addPartBtn.addEventListener('click', function() {
-            // Clonar la primera fila como template
-            const firstForm = formsetContainer.querySelector('.formset-form');
-            const newForm = firstForm.cloneNode(true);
-            
-            // Limpiar valores de los inputs clonados
-            const inputs = newForm.querySelectorAll('input, select');
-            inputs.forEach(input => {
-                if (input.type !== 'hidden') {
-                    input.value = '';
-                    if (input.tagName === 'SELECT') {
-                        input.selectedIndex = 0;
-                    }
+    document.addEventListener("DOMContentLoaded", function () {
+        const addBtn = document.getElementById("add-part-btn");
+        const formsetContainer = document.querySelector(".formset-container");
+        const totalForms = document.getElementById("id_form-TOTAL_FORMS");
+
+        addBtn.addEventListener("click", function () {
+            const currentForms = document.querySelectorAll(".formset-form").length;
+            const emptyForm = document.querySelector(".formset-form").cloneNode(true);
+
+            emptyForm.querySelectorAll("input, select").forEach(el => {
+                if (el.tagName === "SELECT") {
+                    el.selectedIndex = 0;
+                } else {
+                    el.value = "";
+                }
+                const nameAttr = el.getAttribute("name");
+                if (nameAttr) {
+                    el.setAttribute("name", nameAttr.replace(/form-(\d+)-/, `form-${currentForms}-`));
+                    el.setAttribute("id", el.id.replace(/form-(\d+)-/, `form-${currentForms}-`));
                 }
             });
-    
-            // Insertar la nueva fila antes del botón "Añadir parte"
-            formsetContainer.insertBefore(newForm, addPartBtn);
-            
-            // Configurar el botón de eliminar de la nueva fila
-            const removeBtn = newForm.querySelector('.remove-part');
-            if (removeBtn) {
-                removeBtn.addEventListener('click', function() {
-                    removeForm(newForm);
-                });
-            }
-    
-            // Actualizar índices y botones
-            updateFormIndexes();
-            updateRemoveButtons();
+            emptyForm.querySelector(".delete-label").style.display = "block"; 
+
+            formsetContainer.appendChild(emptyForm);
+            totalForms.value = parseInt(totalForms.value) + 1;
         });
-    
-        // Función para eliminar una fila
-        function removeForm(formToRemove) {
-            const forms = document.querySelectorAll('.formset-form');
-            
-            // Solo eliminar si hay más de una fila
-            if (forms.length > 1) {
-                formToRemove.remove();
-                updateFormIndexes();
-                updateRemoveButtons();
+
+        formsetContainer.addEventListener("click", function (e) {
+            if (e.target.closest(".delete-row-btn")) {
+                e.preventDefault();
+                const rowToDelete = e.target.closest(".formset-form");
+
+                if (formsetContainer.querySelectorAll(".formset-form").length > 1) {
+                    rowToDelete.remove();
+                    updateFormIndices();
+                    totalForms.value = parseInt(totalForms.value) - 1;
+                } else {
+
+                    alert("No puedes eliminar todas las workorders.");
+                }
             }
-        }
-    
-        // Configurar botones de eliminar existentes
-        function setupRemoveButtons() {
-            const removeButtons = document.querySelectorAll('.remove-part');
-            removeButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const formToRemove = btn.closest('.formset-form');
-                    removeForm(formToRemove);
+        });
+
+        function updateFormIndices() {
+            formsetContainer.querySelectorAll(".formset-form").forEach((formRow, index) => {
+                formRow.querySelectorAll("input, select").forEach(el => {
+                    const nameAttr = el.getAttribute("name");
+                    if (nameAttr) {
+                        el.setAttribute("name", nameAttr.replace(/form-(\d+)-/, `form-${index}-`));
+                        el.setAttribute("id", el.id.replace(/form-(\d+)-/, `form-${index}-`));
+                    }
                 });
             });
         }
-    
-        // Inicializar
-        setupRemoveButtons();
-        updateRemoveButtons();
     });
-    </script>
-
+</script>
+    
 
 {% endblock %}

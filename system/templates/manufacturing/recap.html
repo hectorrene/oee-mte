@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %} Cerrar día {% endblock %}
+
+{% block content %}
+
+<h1 class="page-title"> Resúmen del día </h1>
+<p class="page-subtitle"> Se mostrará un resúmen de la producción del día </p>
+
+<div class="card">
+    <p class="card-title"> Producción del día </p>
+    {% if production_today %}
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr style="text-align: center;">
+                        <th style="text-align: center;"> Modelo </th>
+                        <th style="text-align: center;"> Cantidad </th>
+                        <th style="text-align: center;"> Esperado </th>
+                        <th style="text-align: center;"> Comentarios </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for production in production_today %}
+                        <tr>
+                            <td style="text-align: center;""> {{ production.hrxhr.production_detail.model_routing.model.name }} </td>
+                            <td style="text-align: center;""> {{ production.production }} </td>
+                            <td style="text-align: center;""> {{ production.hrxhr.pieces }} </td>
+                            <td style="text-align: center;""> {{ production.comments }} </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h3> No hay producción </h3>
+            <p> No hay información de producción para el día de hoy. </p>
+
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <p class="card-title"> Defectos del día </p>
+    {% if defects_today %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr style="text-align: center;">
+                    <th style="text-align: center;"> Modelo </th>
+                    <th style="text-align: center;"> Causa </th>
+                    <th style="text-align: center;"> Cantidad </th>
+                    <th style="text-align: center;"> Comentarios </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for defect in defects_today %}
+                    <tr>
+                        <td style="text-align: center;""> {{ defect.production_detail.model_routing.model.name }} </td>
+                        <td style="text-align: center;""> {{ defect.cause.name }} </td>
+                        <td style="text-align: center;""> {{ defect.quantity }} </td>
+                        <td style="text-align: center;""> {{ defect.comments }} </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty-state">
+            <h3> No hay defectos </h3>
+            <p> No hay información de defectos generados el día de hoy.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <p class="card-title"> Tiempos muertos del día </p>
+    {% if downtime_today %}
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr style="text-align: center;">
+                    <th style="text-align: center;"> Duración </th>
+                    <th style="text-align: center;"> Causa </th>
+                    <th style="text-align: center;"> Comentarios </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for downtime in downtime_today %}
+                    <tr>
+                        <td style="text-align: center;""> {{ downtime.duration_minutes }} minutos </td>
+                        <td style="text-align: center;""> {{ downtime.cause.name }} </td>
+                        <td style="text-align: center;""> {{ downtime.comments }} </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <div class="empty-state">
+            <h3> No hay tiempos muertos </h3>
+            <p> No hay información de tiempos muertos generados el día de hoy.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <p class="card-title"> Comentarios extra (opcional)</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+            {{ form.comments }}
+
+            <button class="btn btn-outline" type="submit" style="float: right; margin-top: 10px;"> Guardar </button>
+    </form>
+
+</div>
+
+{% endblock %}

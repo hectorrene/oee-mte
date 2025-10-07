@@ -14,7 +14,7 @@
     <a href="{% url 'hrxhr' cell.id %}"><button class="btn btn-secondary"> Hora x Hora </button></a>
     <a href="{% url 'downtime' cell.id %}"><button class="btn btn-secondary">Tiempo muerto</button></a>
     <a href="{% url 'defects' cell.id %}"><button class="btn btn-secondary">Registrar defecto</button></a>  
-    <button class="btn btn-secondary">Cerrar día</button>
+    <a href="{% url 'recap' cell.id %}"><button class="btn btn-secondary">Cerrar día</button></a>
 </div>
 
 <!-- Contenedor principal con dos columnas -->
@@ -23,31 +23,71 @@
     <!-- Columna izquierda - Producción planeada -->
     <div class="card">
         <div class="card-header">
+            <h2 class="card-title"> Tablero hora por hora. </h2>
+            <p class="card-description">{{ today }}</p>
+        </div>
+        
+        {% if hrxhr %}
+            <div class="custom-table-wrapper">               
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th> Hora </th>
+                            <th> Modelo </th>
+                            <th> Piezas </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hour in hrxhr %}
+                        <tr>
+                            <td> {{ hour.get_hour_display }} </td>
+                            <td> {{ hour.production_detail.model_routing }} </td>
+                            <td> {{ hour.production_detail.quantity}} </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                    </svg>
+                </div>
+                <h3 class="mb-2">Hora por hora. </h3>
+                <p> No se ha registrado la producción o el hora por hora el día de hoy. </p>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Columna derecha - Tiempos muertos -->
+    <div class="card">
+        <div class="card-header">
             <h2 class="card-title">Producción planeada para hoy</h2>
             <p class="card-description">{{ today }}</p>
         </div>
         
         {% if planned_today %}
-                    <div class="table-container mb-4">
-                        
-                        <div style="padding: 1rem; background-color: #374151; border-bottom: 1px solid #4a5568;">
-                            <h3 style="font-weight: 600; color: #ffffff; margin: 0;"> {{ detail.modelRouting.model.name }} </h3>
-                            <p style="color: #a0aec0; font-size: 0.875rem; margin: 0.25rem 0 0 0;"> {{ detail.cycles_planned }} ciclos planeados</p>
-                        </div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Ciclo</th>
-                                    <th>Cantidad por ciclo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="custom-table-wrapper">               
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th> Modelo </th>
+                            <th> Piezas </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in production_details %}
+                        <tr>
+                            <td> {{ detail.model_routing.model.name }} </td>
+                            <td> {{ detail.quantity}} </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
         {% else %}
             <div class="empty-state">
@@ -60,59 +100,6 @@
                 <p>No se encontró producción programada para hoy</p>
             </div>
         {% endif %}
-    </div>
-
-    <!-- Columna derecha - Tiempos muertos -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">Tiempos muertos programados</h2>
-            <p class="card-description">Paradas y mantenimientos</p>
-        </div>
-        
-        {% if downtimes %}
-            <div class="space-y-3">
-                {% for down in downtimes %}
-                    <div class="downtime-item" style="padding: 1rem; background-color: #374151; border-radius: 0.5rem; border-left: 4px solid #d69e2e;">
-                        <div class="flex justify-between items-start mb-2">
-                            <h4 style="font-weight: 600; color: #ffffff;">{{ down.name }}</h4>
-                            {% if down.repetition == 'once' %}
-                                <span class="pill pill-warning">Una vez</span>
-                            {% else %}
-                                <span class="pill pill-secondary">Recurrente</span>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="downtime-schedule" style="color: #a0aec0; font-size: 0.875rem;">
-                            {% if down.repetition == 'once' %}
-                                <div class="flex items-center gap-2 mb-1">
-                                    <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.53 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
-                                    </svg>
-                                    <span>{{ down.start_datetime|date:"d/m/Y H:i" }} - {{ down.end_datetime|date:"d/m/Y H:i" }}</span>
-                                </div>
-                            {% else %}
-                                <div class="flex items-center gap-2 mb-1">
-                                    <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.53 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
-                                    </svg>
-                                    <span>{{ down.start_time }} - {{ down.end_time }}</span>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z"/>
-                    </svg>
-                </div>
-                <h3 class="mb-2">No hay tiempos muertos</h3>
-                <p>No se encontraron paradas programadas</p>
-            </div>
-        {% endif %}
         
         <!-- Sección de resumen de producción total dentro de la misma columna -->
         <div class="mt-6" style="border-top: 1px solid #4a5568; padding-top: 1.5rem;">
@@ -120,12 +107,12 @@
             <p class="section-subtitle">Total de productos para {{ today }}</p>
             
             {% if planned_today %}
-                <div class="table-container">
-                    <table class="table">
+                <div class="custom-table-wrapper">
+                    <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>Modelo</th>
-                                <th class="text-center">Total piezas</th>
+                                <th>Total piezas</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,6 +148,93 @@
 </div>
 
 <style>
+    /* Wrapper personalizado para tablas - sin overflow por defecto */
+    .custom-table-wrapper {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    /* Estilos de tabla personalizados */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed; /* Esto es clave para que respete el contenedor */
+    }
+
+    .custom-table thead th {
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #4a5568;
+    }
+
+    .custom-table tbody td {
+        text-align: center;
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #4a5568;
+        word-wrap: break-word; /* Para texto largo */
+        overflow-wrap: break-word;
+    }
+
+    .custom-table tbody tr:hover {
+        background-color: rgba(74, 85, 104, 0.3);
+        transition: background-color 0.2s ease;
+    }
+
+    /* Responsive para tablets (menor a 1024px) */
+    @media (max-width: 1024px) {
+        .custom-table {
+            font-size: 0.875rem;
+        }
+
+        .custom-table thead th,
+        .custom-table tbody td {
+            padding: 0.625rem 0.375rem;
+        }
+    }
+
+    /* Responsive para tablets pequeñas y móviles */
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns"] {
+            grid-template-columns: 1fr !important;
+        }
+        
+        div[style*="justify-content: flex-end"] {
+            justify-content: center !important;
+        }
+
+        /* En móviles, permitir scroll horizontal si es absolutamente necesario */
+        .custom-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .custom-table {
+            font-size: 0.8rem;
+            min-width: 100%; /* Se ajusta al contenedor */
+        }
+
+        .custom-table thead th,
+        .custom-table tbody td {
+            padding: 0.5rem 0.25rem;
+        }
+    }
+
+    /* Para pantallas muy pequeñas */
+    @media (max-width: 480px) {
+        .custom-table {
+            font-size: 0.75rem;
+        }
+
+        .custom-table thead th,
+        .custom-table tbody td {
+            padding: 0.4rem 0.2rem;
+        }
+    }
+
     .space-y-3 > * + * {
         margin-top: 0.75rem;
     }
@@ -171,16 +245,6 @@
     
     .downtime-item:hover {
         background-color: #4a5568 !important;
-    }
-
-    @media (max-width: 768px) {
-        div[style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
-        }
-        
-        div[style*="justify-content: flex-end"] {
-            justify-content: center !important;
-        }
     }
 </style>
 

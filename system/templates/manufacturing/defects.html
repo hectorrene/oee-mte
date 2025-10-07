@@ -18,39 +18,29 @@
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
             <div class="form-group">
-                <label class="form-label"> Hora del defecto <span class="obligatorio"> * </span></label>
-                <input type="time" class="form-input" name="start_time" required>
+                <label class="form-label"> Modelo del defecto <span class="obligatorio"> * </span></label>
+                {{form.model}}
             </div>
             <div class="form-group">
                 <label class="form-label"> Cantidad de defectos <span class="obligatorio"> * </span> </label>
-                <input type="number" class="form-input" name="quantity" required style="height: 46.48px;">
+                {{ form.quantity }}
             </div>
         </div>
 
         <div class="form-group">
-            <label class="form-label"> Tipo de defecto <span class="obligatorio"> * </span></label>
-            <select class="form-select" name="type" required>
-                <option value="" disabled selected>Seleccione un tipo</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">Causa del defecto</label>
-            <select class="form-select" name="cause" required>
-                <option value="" disabled selected>Seleccione una causa</option>
-            </select>
+            <label class="form-label"> Causa del defecto <span class="obligatorio"> * </span></label>
+            {{ form.cause }}
         </div>
 
         <div class="form-group">
             <label class="form-label"> Comentarios adicionales </label>
-            <textarea class="form-input" name="comments" rows="4" 
-                      placeholder="Ingrese cualquier comentario adicional sobre el tiempo muerto..."
-                      style="resize: vertical; min-height: 100px;"></textarea>
+            {{ form.comments }}
         </div>
 
         <button type="submit" class="btn btn-primary" style="margin-left: auto;">
             Guardar Registro
         </button>
+    </form>
 </div>
 
 {% endblock %}

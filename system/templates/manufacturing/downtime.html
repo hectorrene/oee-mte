@@ -20,11 +20,11 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
             <div class="form-group">
                 <label class="form-label">Inicio del tiempo muerto</label>
-                <input type="time" class="form-input" name="start_time" required>
+                {{ form.start }}
             </div>
             <div class="form-group">
                 <label class="form-label">Fin del tiempo muerto</label>
-                <input type="time" class="form-input" name="end_time" required>
+                {{ form.end }}
             </div>
         </div>
 
@@ -39,17 +39,13 @@
         <!-- Causa del tiempo muerto -->
         <div class="form-group">
             <label class="form-label">Causa del tiempo muerto</label>
-            <select class="form-select" name="cause" required>
-                <option value="" disabled selected>Seleccione una causa</option>
-            </select>
+            {{ form.cause }}
         </div>
 
         <!-- Comentarios con textarea -->
         <div class="form-group">
             <label class="form-label">Comentarios adicionales </label>
-            <textarea class="form-input" name="comments" rows="4" 
-                      placeholder="Ingrese cualquier comentario adicional sobre el tiempo muerto..."
-                      style="resize: vertical; min-height: 100px;"></textarea>
+            {{ form.comments }}
         </div>
 
         <!-- Botones de acción -->

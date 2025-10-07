@@ -1,9 +1,98 @@
 {% extends "base.html" %}
 
-{% block title %} {} {% endblock %}
+{% block title %} Dashboard  {% endblock %}
 
 {% block content %}
+
+<h1 class="page-title"> Dashboard </h1>
+<p class="page-subtitle"> Gráficas para la máquina {{cell.name}} </p>
+
+<div class="card">
+    <p class="card-title"> Producción mensual </p>
+    <p class="card-subtitle"> Resúmen de la producción del mes de </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 10px;">
+        <div class="card">
+            <p class="card-title"> Piezas planeadas al momento. </p>
+            {{ sum_planned_pieces }}
+        </div>
+        <div class="card">
+            <p class="card-title"> Piezas realizadas al momento. </p>
+            {{ sum_total_pieces }}
+        </div>
+        <div class="card">
+            <p class="card-title"> Porcentaje de efectividad. </p>
+            {{ completion_percentage }} %
+        </div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+    <div class="card">
+        <p class="card-title"> OEE mensual </p>
+        <canvas id="oeeChart" style="max-width: 400px; max-height: 300px;"></canvas>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById("oeeChart").getContext("2d");
+
+    const data = {
+    labels: ["Availability", "Performance", "Quality"],
+    datasets: [{
+        data: [
+            {{ avg_availability }},
+            {{ avg_performance }},
+            {{ avg_quality }}
+        ],
+        backgroundColor: ["#36A2EB", "#FFCE56", "#4BC0C0"],
+        hoverOffset: 10
+        }]
+    };
+
+    const centerText = {
+        id: 'centerText',
+        beforeDraw(chart) {
+        const {width} = chart;
+        const {height} = chart;
+        const ctx = chart.ctx;
+        ctx.restore();
+        ctx.font = "bold 15px Arial";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#000";
+        const text = "{{ month }}%";
+        const textX = Math.round((width - ctx.measureText(text).width) / 2);
+        const textY = height / 2;
+        ctx.fillText(text, textX, textY);
+        ctx.save();
+        }
+    };
+
+    const config = {
+        type: "doughnut",
+        data: data,
+        options: {
+        plugins: {
+            tooltip: {
+            callbacks: {
+                label: function(context) {
+                let label = context.label || '';
+                let value = context.raw || 0;
+                return `${label}: ${value}%`;
+                }
+            }
+            },
+            legend: {
+            position: "bottom"
+            }
+        }
+        },
+        plugins: [centerText]
+    };
+
+    new Chart(ctx, config);
+</script>
 
 {% endblock %}
 
-{% block content %}
+
+

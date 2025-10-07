@@ -6,23 +6,81 @@
 
 <div class="page-title">Producción planeada</div>
 
-{% if planned_today %}
-    holi
-{% else %}
-    <div class="card">
-        <p class="card-title"> Produccion {{cell.name}}</p>
-        <p class="card-subtitle"> Ingrese el hora por hora para la producción de hoy. </p>
-            <div class="empty-state">
-                <div class="empty-state-icon">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-                    </svg>
-                </div>
-                <h3 class="mb-2">No hay producción planeada</h3>
-                <p>Ingrese la información del hora por hora. </p>
-                <a href="{% url 'addHrxhr' cell.id %}"><button class="btn btn-primary" style="margin-top: 8px;"> Hora por Hora </button></a>
+<div class="card">
+    <p class="card-title"> Produccion {{cell.name}}</p>
+    <p class="card-subtitle"> Ingrese el hora por hora para la producción de hoy. </p>
+    
+    {% if planned_today %}
+        <!-- Si todo está registrado -->
+        {% if hourly_production %}
+            <div style="display: flex; flex-direction: row; gap: 10px; justify-content: flex-end; margin: 10px;">
+                <a href="{% url 'addHrxhr' cell.id %}"><button class="btn btn-outline"> Agregar producción </button></a>
+                <a href="{% url 'registerHrxhr' cell.id %}"><button class="btn btn-outline"> Modificar hora por hora </button></a>
             </div>
-    </div>
-{% endif %}
+
+            
+            <form method="post">
+                {% csrf_token %}
+                {{ formset.management_form }}
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr style="text-align: center;">
+                                <th style="text-align: center;"> Hora </th>
+                                <th style="text-align: center;"> Modelo </th>
+                                <th style="text-align: center;"> Cantidad </th>
+                                <th style="text-align: center;"> Esperado </th>
+                                <th style="text-align: center;"> Comentarios </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for hp, form in rows %}
+                            <tr>
+                                <td style="text-align: center;">{{ hp.get_hour_display }}</td>
+                                <td style="text-align: center;">{{ hp.production_detail.model_routing }}</td>
+                                <td style="text-align: center;">{{ form.production }}{{ form.id }}</td>
+                                <td style="text-align: center;">{{ hp.pieces }}</td>
+                                <td style="text-align: center;">{{ form.comments }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-outline" style="margin: 10px; float: right;"> Guardar Producción </button>
+            </form>
+        <!-- Si hay producción pero no hora por hora -->
+        {% else %}
+
+            <div style="display: flex; flex-direction: row; gap: 10px; justify-content: flex-end; margin: 10px;">
+                <a href="{% url 'addHrxhr' cell.id %}"><button class="btn btn-outline"> Agregar producción </button></a>
+                <a href="{% url 'registerHrxhr' cell.id %}"><button class="btn btn-outline"> Modificar hora por hora </button></a>
+            </div>
+            
+            <div class="empty-state">
+                <h3>No se ha hecho el hora por hora</h3>
+                <p>Ingrese la información del hora por hora para hoy.</p>
+                <a href="{% url 'registerHrxhr' cell.id %}">
+                    <button class="btn btn-outline" style="margin-top: 8px;"> Hora por Hora </button>
+                </a>
+            </div>
+        {% endif %}
+    <!-- Si no hay nada registrado -->
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                </svg>
+            </div>
+            <h3 class="mb-2">No hay producción planeada</h3>
+            <p> Ingrese la información de la producción para hoy. </p>
+            <a href="{% url 'addHrxhr' cell.id %}">
+                <button class="btn btn-outline" style="margin-top: 8px;"> Producción planeada </button>
+            </a>
+        </div>
+    {% endif %}
+
+</div>
 
 {% endblock %}
+
